@@ -1,0 +1,305 @@
+{% extends 'movies/base.html' %}
+{% load rating_extras %}
+{% block content %}
+
+<h2 class="mb-4">Movies</h2>
+
+<form method="get" class="mb-4">
+  <div class="filter-row" style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+    <!-- Genre Filter -->
+    <div class="filter-group" style="flex: 1 1 250px; min-width: 200px;">
+      <label for="genre-filter" class="filter-label">Filter by Genres:</label>
+      <select id="genre-filter" name="genre" multiple class="form-control filter-input">
+        {% for genre in genres %}
+          <option value="{{ genre.id }}" {% if genre.id|stringformat:'s' in selected_genres %}selected{% endif %}>{{ genre.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <!-- Movie Name -->
+    <div class="filter-group" style="flex: 1 1 200px; min-width: 170px;">
+      <label for="name" class="filter-label">Movie Name:</label>
+      <input type="text" id="name" name="name" class="form-control custom-dark-input filter-input" placeholder="Movie name" value="{{ name_query|default_if_none:'' }}">
+    </div>
+    <!-- Min Rating Filter -->
+    <div class="filter-group" style="flex: 1 1 210px; min-width: 170px;">
+      <label for="min_rating" class="filter-label">Min. Rating: <span id="minRatingValue" style="color: hsl(177, 88%, 53%); font-weight: bold;">{{ min_rating|default_if_none:'0' }}</span></label>
+      <input
+        type="range"
+        id="min_rating"
+        name="min_rating"
+        min="0"
+        max="5"
+        step="0.1"
+        value="{{ min_rating|default_if_none:'0' }}"
+        class="custom-slider filter-slider"
+        oninput="document.getElementById('minRatingValue').textContent = this.value"
+      >
+    </div>
+    <!-- Submit Button -->
+    <div class="filter-group" style="flex: 0 0 120px; min-width: 100px; display: flex; align-self: end;">
+      <button type="submit" class="btn btn-primary filter-btn" style="width: 100%; height: 40px; font-size: 1.1em; border-radius: 24px;">Filter</button>
+    </div>
+  </div>
+</form>
+
+
+<!-- Choices.js for genre multi-select -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    new Choices('#genre-filter', {
+      removeItemButton: true,
+      searchEnabled: true,
+      shouldSort: false,
+      placeholderValue: 'Select genres',
+      itemSelectText: '',
+    });
+  });
+</script>
+
+<!-- Custom Styles -->
+<style>
+  /* Genre multiselect styling */
+  .choices__inner {
+    background: #222 !important;
+    color: #fff !important;
+    border-radius: 8px;
+    border: 1px solid #444 !important;
+  }
+
+  .choices__placeholder,
+  .choices__input {
+    color: #bbb !important;
+    background: #222 !important;
+  }
+
+  .choices__list--dropdown, .choices__list[role=listbox] {
+    background: #222 !important;
+    color: #fff !important;
+    border: 1px solid #444 !important;
+  }
+
+  .choices__item--selectable {
+    background: #292929 !important;
+    color: #fff !important;
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
+
+  .choices__item--selectable:hover {
+    background: #444 !important;
+    color: #89e3f3 !important;
+    border: 1px solid #9fe9ff !important;
+  }
+
+  .choices__list--multiple {
+    max-height: 110px;
+    overflow-y: auto;
+  }
+
+  /* Custom range slider for min rating */
+  .custom-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(to right, #1f7eeb 0%, #0059ff var(--val, 0%), #333 var(--val, 0%), #333 100%);
+    border-radius: 4px;
+    outline: none;
+    transition: background 0.3s;
+  }
+
+  .custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #0d7e7e;
+    border: 2px solid #333;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 5px #222;
+  }
+
+  .custom-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #1865a3;
+    border: 2px solid #333;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 5px #222;
+  }
+.filter-label {
+  font-size: 1em;
+  color: #c6c6c6;
+  margin-bottom: 4px;
+  display: block;
+}
+.filter-input, .choices__inner, .custom-dark-input {
+  height: 48px !important;
+  min-height: 48px !important;
+  font-size: 1.08em !important;
+  padding: 0 16px !important;
+  border-radius: 12px !important;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+.choices__inner {
+  padding: 0 12px !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+.choices__list--multiple {
+  max-height: 90px !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+}
+.choices__list--multiple::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+.choices__list--multiple::-webkit-scrollbar-thumb {
+  background: linear-gradient(120deg, #1f7eeb 40%, #3fc7fd 100%);
+  border-radius: 10px;
+  min-height: 24px;
+  box-shadow: 0 2px 6px #1f7eeb33;
+  transition: background 0.2s;
+  border: 2px solid #151a22;
+  opacity: 0.85;
+}
+.choices__list--multiple::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(120deg, #3fc7fd 20%, #1f7eeb 100%);
+  opacity: 1;
+}
+.choices__list--multiple::-webkit-scrollbar-track {
+  background: #181c22;
+  border-radius: 10px;
+}
+.choices__list--multiple::-webkit-scrollbar-track {
+  background: transparent;
+}
+select#genre-filter {
+  scrollbar-width: none !important;
+}
+select#genre-filter::-webkit-scrollbar {
+  display: none !important;
+}
+.custom-dark-input {
+  background: #222 !important;
+  color: #eee !important;
+  border: 1px solid #444 !important;
+  border-radius: 12px !important;
+}
+.custom-dark-input:focus {
+  background: #222 !important;
+  color: #fff !important;
+  border: 1.5px solid #1f7eeb !important;
+  box-shadow: 0 0 0 2px #1f7eeb33;
+}
+.custom-dark-input::placeholder {
+  color: #888 !important;
+  opacity: 1 !important;
+}
+.filter-slider {
+  width: 100%;
+  height: 48px !important;
+  margin-top: 0;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+}
+.filter-btn {
+  height: 48px !important;
+  min-height: 48px !important;
+  border-radius: 24px !important;
+  font-size: 1.1em !important;
+  padding: 0 24px !important;
+  box-shadow: none !important;
+}
+
+/* Existing custom slider styles ... */
+.custom-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(to right, #1f7eeb 0%, #0059ff var(--val, 0%), #333 var(--val, 0%), #333 100%);
+    border-radius: 4px;
+    outline: none;
+    transition: background 0.3s;
+}
+.custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 7px;
+    height: 50px;
+    background: #3fc7fd;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    box-shadow: none;
+    margin-top: -100p;
+    transition: background 0.2s, border 0.2s;
+}
+.custom-slider::-moz-range-thumb {
+    width: 3px;
+    height: 44px;
+    background: #1f7eeb;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    box-shadow: 0 0 8px #1f7eeb99;
+    transition: background 0.2s, border 0.2s;
+}
+
+</style>
+
+<!-- Movies List -->
+<div class="row">
+  {% for movie in movies %}
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 shadow-sm d-flex flex-column">
+        {% if movie.image %}
+          <img src="{{ movie.image.url }}" class="card-img-top" style="height:300px; object-fit:cover;">
+        {% endif %}
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">{{ movie.title }}</h5>
+          <p class="card-text">{{ movie.description|truncatewords:20 }}</p>
+
+          <p><strong>Genres:</strong>
+            {% for genre in movie.genres.all %}
+              {{ genre.name }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+          </p>
+
+          <p>
+            <strong>Avg. Rating:</strong>
+            {% if movie.average_rating %}
+              <span class="star-rating" style="position: relative; display: inline-block; font-size: 1.2em;">
+                <span class="star-back" style="color: #ccc;">
+                  {% for i in "12345" %}<i class="fas fa-star"></i>{% endfor %}
+                </span>
+                <span class="star-front" style="color: #ffc107; position: absolute; top: 0; left: 0; white-space: nowrap; overflow: hidden; width: {{ movie.average_rating|floatformat:2|star_percentage }}%;">
+                  {% for i in "12345" %}<i class="fas fa-star"></i>{% endfor %}
+                </span>
+              </span>
+              <small class="text-muted ml-1">
+                ({{ movie.average_rating|floatformat:1 }}/5,
+                {{ movie.reviews.count }} review{{ movie.reviews.count|pluralize }})
+              </small>
+            {% else %}
+              No reviews
+            {% endif %}
+          </p>
+
+          <a href="{% url 'movies:movie_detail' movie.pk %}" class="btn btn-primary btn-sm mt-auto align-self-start">Details</a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12"><p>No movies found.</p></div>
+  {% endfor %}
+</div>
+
+{% endblock %}
